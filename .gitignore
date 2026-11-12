@@ -178,6 +178,24 @@ Temporary Items
 
 **/.aws-sam
 
+### ExpiringShare project ###
+# Local environment files and secrets
+.env
+.env.*
+!.env.example
+
+# IDE settings
+.idea/
+.fleet/
+
+# Local test and coverage output
+test-results/
+coverage/
+
+# Local AWS and SAM artifacts
+**/.aws-sam/
+**/.aws-sam-build/
+
 ### Windows ###
 # Windows thumbnail cache files
 Thumbs.db

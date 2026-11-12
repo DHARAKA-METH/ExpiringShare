@@ -1,0 +1,16 @@
+{
+    "name": "expiringshare-backend",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "test": "jest"
+    },
+    "devDependencies": {
+        "jest": "^29.7.0"
+    },
+    "jest": {
+        "roots": [
+            "<rootDir>/src"
+        ]
+    }
+}
