@@ -3,6 +3,12 @@ Transform: AWS::Serverless-2016-10-31
 
 Description: ExpiringShare backend
 
+Parameters:
+  UploadBucketName:
+    Type: String
+    Default: expiringshare-dharaka-lab-20261110
+    Description: Existing S3 bucket used for uploaded files
+
 Globals:
   Function:
     Runtime: nodejs22.x
@@ -29,10 +35,10 @@ Resources:
       Handler: src/functions/createUploadUrl.lambdaHandler
       Environment:
         Variables:
-          UPLOAD_BUCKET: !Ref UploadsBucket
+          UPLOAD_BUCKET: !Ref UploadBucketName
       Policies:
         - S3WritePolicy:
-            BucketName: !Ref UploadsBucket
+            BucketName: !Ref UploadBucketName
       Events:
         CreateUploadUrlApi:
           Type: Api
@@ -42,6 +48,8 @@ Resources:
 
   UploadsBucket:
     Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       BucketEncryption:
         ServerSideEncryptionConfiguration:
@@ -66,4 +74,4 @@ Resources:
 Outputs:
   UploadsBucketName:
     Description: S3 bucket used for file uploads
-    Value: !Ref UploadsBucket
+    Value: !Ref UploadBucketName

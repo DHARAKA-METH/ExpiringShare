@@ -2,7 +2,8 @@ version = 0.1
 
 [default.deploy.parameters]
 stack_name = "ExpiringShare"
-resolve_s3 = true
+s3_bucket = "expiringshare-sam-artifacts-dharaka-20261113"
+resolve_s3 = false
 s3_prefix = "ExpiringShare"
 region = "ap-south-1"
 confirm_changeset = true
