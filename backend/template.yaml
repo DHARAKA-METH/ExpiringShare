@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 
-Description: ExpiringShare Milestone 1
+Description: ExpiringShare backend
 
 Globals:
   Function:
@@ -21,3 +21,49 @@ Resources:
           Properties:
             Path: /hello
             Method: get
+
+  CreateUploadUrlFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: src/functions/createUploadUrl.lambdaHandler
+      Environment:
+        Variables:
+          UPLOAD_BUCKET: !Ref UploadsBucket
+      Policies:
+        - S3WritePolicy:
+            BucketName: !Ref UploadsBucket
+      Events:
+        CreateUploadUrlApi:
+          Type: Api
+          Properties:
+            Path: /uploads
+            Method: post
+
+  UploadsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - "*"
+            AllowedMethods:
+              - PUT
+            AllowedOrigins:
+              - "*"
+            ExposedHeaders:
+              - ETag
+
+Outputs:
+  UploadsBucketName:
+    Description: S3 bucket used for file uploads
+    Value: !Ref UploadsBucket
