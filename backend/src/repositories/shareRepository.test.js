@@ -19,6 +19,7 @@ const {
     deleteShare,
     getShareById,
     updateShare,
+    activatePendingShare,
 } = require('./shareRepository');
 
 describe('shareRepository', () => {
@@ -69,5 +70,22 @@ describe('shareRepository', () => {
         mockSend.mockResolvedValue({ Attributes: { shareId: 'share-001' } });
 
         await expect(deleteShare('share-001')).resolves.toEqual({ shareId: 'share-001' });
+    });
+
+    test('activates only a pending share', async () => {
+        mockSend.mockResolvedValue({ Attributes: { shareId: 'share-001', status: 'ACTIVE' } });
+
+        await expect(activatePendingShare('share-001')).resolves.toEqual({
+            shareId: 'share-001',
+            status: 'ACTIVE',
+        });
+
+        expect(mockSend).toHaveBeenCalledWith({
+            input: expect.objectContaining({
+                TableName: 'ExpiringShareLinks',
+                Key: { shareId: 'share-001' },
+                ConditionExpression: 'attribute_exists(shareId) AND #status = :pendingStatus',
+            }),
+        });
     });
 });

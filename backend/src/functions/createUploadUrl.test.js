@@ -7,15 +7,22 @@ jest.mock('@aws-sdk/s3-request-presigner', () => ({
     getSignedUrl: jest.fn(),
 }));
 
+jest.mock('../repositories/shareRepository', () => ({
+    createShare: jest.fn(),
+}));
+
 const { PutObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+const { createShare } = require('../repositories/shareRepository');
 const { lambdaHandler } = require('./createUploadUrl');
 
 describe('createUploadUrl Lambda', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         process.env.UPLOAD_BUCKET = 'test-upload-bucket';
+        process.env.TABLE_NAME = 'ExpiringShareLinks';
         getSignedUrl.mockResolvedValue('https://example.com/upload-url');
+        createShare.mockResolvedValue();
     });
 
     test('returns a presigned URL for a valid request', async () => {
@@ -30,16 +37,26 @@ describe('createUploadUrl Lambda', () => {
 
         expect(result.statusCode).toBe(200);
         expect(body).toEqual({
+            shareId: expect.any(String),
             uploadUrl: 'https://example.com/upload-url',
-            objectKey: expect.stringMatching(/^uploads\/.+-document\.pdf$/),
+            s3Key: expect.stringMatching(/^uploads\/[\w-]+\/document\.pdf$/),
             expiresIn: 300,
             success: true,
         });
         expect(PutObjectCommand).toHaveBeenCalledWith({
             Bucket: 'test-upload-bucket',
-            Key: expect.stringMatching(/^uploads\/.+-document\.pdf$/),
+            Key: expect.stringMatching(/^uploads\/[\w-]+\/document\.pdf$/),
             ContentType: 'application/pdf',
         });
+        expect(createShare).toHaveBeenCalledWith(expect.objectContaining({
+            shareId: body.shareId,
+            s3Key: body.s3Key,
+            fileName: 'document.pdf',
+            contentType: 'application/pdf',
+            fileSize: 1024,
+            status: 'PENDING',
+            downloadCount: 0,
+        }));
         expect(getSignedUrl).toHaveBeenCalledWith(expect.anything(), expect.anything(), { expiresIn: 300 });
     });
 

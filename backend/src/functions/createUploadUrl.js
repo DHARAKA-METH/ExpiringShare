@@ -2,6 +2,7 @@ const crypto = require('node:crypto');
 const { PutObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const { S3Client } = require('@aws-sdk/client-s3');
+const { createShare } = require('../repositories/shareRepository');
 
 const s3Client = new S3Client({});
 const URL_EXPIRATION_SECONDS = 300;
@@ -64,7 +65,8 @@ exports.lambdaHandler = async (event) => {
     }
 
     const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 120);
-    const objectKey = `uploads/${crypto.randomUUID()}-${safeFileName}`;
+    const shareId = crypto.randomUUID();
+    const objectKey = `uploads/${shareId}/${safeFileName}`;
     const bucketName = process.env.UPLOAD_BUCKET;
 
     if (!bucketName) {
@@ -74,6 +76,19 @@ exports.lambdaHandler = async (event) => {
             success: false,
         });
     }
+
+    await createShare({
+        shareId,
+        s3Key: objectKey,
+        fileName,
+        contentType,
+        fileSize: fileSize ?? null,
+        status: 'PENDING',
+        downloadCount: 0,
+        maxDownloads: null,
+        createdAt: Math.floor(Date.now() / 1000),
+        expiresAt: null,
+    });
 
     const command = new PutObjectCommand({
         Bucket: bucketName,
@@ -86,8 +101,9 @@ exports.lambdaHandler = async (event) => {
     });
 
     return response(200, {
+        shareId,
         uploadUrl,
-        objectKey,
+        s3Key: objectKey,
         expiresIn: URL_EXPIRATION_SECONDS,
         success: true,
     });

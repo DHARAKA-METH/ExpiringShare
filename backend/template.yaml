@@ -60,6 +60,34 @@ Resources:
             Path: /uploads
             Method: post
 
+  CompleteUploadFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: src/functions/completeUpload.lambdaHandler
+      Environment:
+        Variables:
+          UPLOAD_BUCKET: !Ref UploadBucketName
+          TABLE_NAME: !Ref ShareTableName
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+              Resource: !Sub arn:${AWS::Partition}:s3:::${UploadBucketName}/uploads/*
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              Resource: !Sub arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ShareTableName}
+      Events:
+        CompleteUploadApi:
+          Type: Api
+          Properties:
+            Path: /uploads/{shareId}/complete
+            Method: post
+
   UploadsBucket:
     Type: AWS::S3::Bucket
     DeletionPolicy: Retain

@@ -90,6 +90,31 @@ const updateShare = async (shareId, updates) => {
     return result.Attributes;
 };
 
+const activatePendingShare = async (shareId) => {
+    if (!shareId) {
+        throw new Error('shareId is required');
+    }
+
+    const result = await documentClient.send(
+        new UpdateCommand({
+            TableName: getTableName(),
+            Key: { shareId },
+            UpdateExpression: 'SET #status = :activeStatus',
+            ExpressionAttributeNames: {
+                '#status': 'status',
+            },
+            ExpressionAttributeValues: {
+                ':pendingStatus': 'PENDING',
+                ':activeStatus': 'ACTIVE',
+            },
+            ConditionExpression: 'attribute_exists(shareId) AND #status = :pendingStatus',
+            ReturnValues: 'ALL_NEW',
+        }),
+    );
+
+    return result.Attributes;
+};
+
 const deleteShare = async (shareId) => {
     if (!shareId) {
         throw new Error('shareId is required');
@@ -110,5 +135,6 @@ module.exports = {
     createShare,
     getShareById,
     updateShare,
+    activatePendingShare,
     deleteShare,
 };
