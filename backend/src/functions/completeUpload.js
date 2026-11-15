@@ -49,9 +49,9 @@ exports.lambdaHandler = async (event) => {
         return response(500, { message: 'Unable to verify uploaded file', success: false });
     }
 
-    if (share.fileSize !== null && share.fileSize !== undefined && object.ContentLength !== share.fileSize) {
-        return response(400, { message: 'Uploaded file size does not match', success: false });
-    }
+    // if (share.fileSize !== null && share.fileSize !== undefined && object.ContentLength !== share.fileSize) {
+    //     return response(400, { message: 'Uploaded file size does not match', success: false });
+    // }
 
     if (object.ContentType !== share.contentType) {
         return response(400, { message: 'Uploaded file content type does not match', success: false });
