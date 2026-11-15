@@ -88,6 +88,33 @@ Resources:
             Path: /uploads/{shareId}/complete
             Method: post
 
+  DownloadShareFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: src/functions/downloadShare.lambdaHandler
+      Environment:
+        Variables:
+          UPLOAD_BUCKET: !Ref UploadBucketName
+          TABLE_NAME: !Ref ShareTableName
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+              Resource: !Sub arn:${AWS::Partition}:s3:::${UploadBucketName}/uploads/*
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource: !Sub arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ShareTableName}
+      Events:
+        DownloadShareApi:
+          Type: Api
+          Properties:
+            Path: /shares/{shareId}/download
+            Method: get
+
   UploadsBucket:
     Type: AWS::S3::Bucket
     DeletionPolicy: Retain
