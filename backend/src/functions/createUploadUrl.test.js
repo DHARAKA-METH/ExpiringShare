@@ -31,6 +31,7 @@ describe('createUploadUrl Lambda', () => {
                 fileName: 'document.pdf',
                 contentType: 'application/pdf',
                 fileSize: 1024,
+                expiryHours: 24,
             }),
         });
         const body = JSON.parse(result.body);
@@ -40,6 +41,7 @@ describe('createUploadUrl Lambda', () => {
             shareId: expect.any(String),
             uploadUrl: 'https://example.com/upload-url',
             s3Key: expect.stringMatching(/^uploads\/[\w-]+\/document\.pdf$/),
+            expiryHours: 24,
             expiresIn: 300,
             success: true,
         });
@@ -55,6 +57,7 @@ describe('createUploadUrl Lambda', () => {
             contentType: 'application/pdf',
             fileSize: 1024,
             status: 'PENDING',
+            expiryHours: 24,
             downloadCount: 0,
         }));
         expect(getSignedUrl).toHaveBeenCalledWith(expect.anything(), expect.anything(), { expiresIn: 300 });
@@ -78,5 +81,19 @@ describe('createUploadUrl Lambda', () => {
 
         expect(result.statusCode).toBe(400);
         expect(JSON.parse(result.body).message).toBe('Unsupported contentType');
+    });
+
+    test('rejects unsupported expiry durations', async () => {
+        const result = await lambdaHandler({
+            body: JSON.stringify({
+                fileName: 'document.pdf',
+                contentType: 'application/pdf',
+                expiryHours: 2,
+            }),
+        });
+
+        expect(result.statusCode).toBe(400);
+        expect(JSON.parse(result.body).message).toBe('expiryHours must be one of: 1, 24, or 168');
+        expect(createShare).not.toHaveBeenCalled();
     });
 });

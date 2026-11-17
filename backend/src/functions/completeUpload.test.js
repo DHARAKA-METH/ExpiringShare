@@ -19,12 +19,18 @@ describe('completeUpload Lambda', () => {
         s3Key: 'uploads/share-001/document.pdf',
         contentType: 'application/pdf',
         fileSize: 1024,
+        expiryHours: 24,
         status: 'PENDING',
     };
 
     beforeEach(() => {
         jest.clearAllMocks();
         process.env.UPLOAD_BUCKET = 'test-upload-bucket';
+        jest.spyOn(Date, 'now').mockReturnValue(1_800_000_000_000);
+    });
+
+    afterEach(() => {
+        jest.restoreAllMocks();
     });
 
     test('verifies an uploaded object and activates the share', async () => {
@@ -38,6 +44,7 @@ describe('completeUpload Lambda', () => {
         expect(JSON.parse(result.body)).toEqual({
             shareId: 'share-001',
             status: 'ACTIVE',
+            expiresAt: 1_800_086_400,
             shareUrl: '/s/share-001',
             success: true,
         });
@@ -45,7 +52,7 @@ describe('completeUpload Lambda', () => {
             Bucket: 'test-upload-bucket',
             Key: 'uploads/share-001/document.pdf',
         });
-        expect(activatePendingShare).toHaveBeenCalledWith('share-001');
+        expect(activatePendingShare).toHaveBeenCalledWith('share-001', 1_800_086_400);
     });
 
     test('returns 404 for an unknown share', async () => {

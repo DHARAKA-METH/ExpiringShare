@@ -90,22 +90,26 @@ const updateShare = async (shareId, updates) => {
     return result.Attributes;
 };
 
-const activatePendingShare = async (shareId) => {
+const activatePendingShare = async (shareId, expiresAt) => {
     if (!shareId) {
         throw new Error('shareId is required');
+    }
+    if (!Number.isInteger(expiresAt) || expiresAt <= 0) {
+        throw new Error('A valid expiresAt timestamp is required');
     }
 
     const result = await documentClient.send(
         new UpdateCommand({
             TableName: getTableName(),
             Key: { shareId },
-            UpdateExpression: 'SET #status = :activeStatus',
+            UpdateExpression: 'SET #status = :activeStatus, expiresAt = :expiresAt',
             ExpressionAttributeNames: {
                 '#status': 'status',
             },
             ExpressionAttributeValues: {
                 ':pendingStatus': 'PENDING',
                 ':activeStatus': 'ACTIVE',
+                ':expiresAt': expiresAt,
             },
             ConditionExpression: 'attribute_exists(shareId) AND #status = :pendingStatus',
             ReturnValues: 'ALL_NEW',

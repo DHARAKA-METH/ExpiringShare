@@ -20,6 +20,11 @@ describe('downloadShare Lambda', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         process.env.UPLOAD_BUCKET = 'test-upload-bucket';
+        jest.spyOn(Date, 'now').mockReturnValue(1_800_000_000_000);
+    });
+
+    afterEach(() => {
+        jest.restoreAllMocks();
     });
 
     test('returns a presigned download URL for an active share', async () => {
@@ -29,6 +34,7 @@ describe('downloadShare Lambda', () => {
             fileName: 'document.pdf',
             contentType: 'application/pdf',
             status: 'ACTIVE',
+            expiresAt: 1_800_000_100,
         });
         getSignedUrl.mockResolvedValue('https://example.com/download');
 
@@ -73,5 +79,28 @@ describe('downloadShare Lambda', () => {
 
         expect(result.statusCode).toBe(400);
         expect(getShareById).not.toHaveBeenCalled();
+    });
+
+    test('rejects an expired active share without signing a URL', async () => {
+        getShareById.mockResolvedValue({
+            shareId: 'share-001',
+            status: 'ACTIVE',
+            expiresAt: 1_799_999_999,
+        });
+
+        const result = await lambdaHandler({ pathParameters: { shareId: 'share-001' } });
+
+        expect(result.statusCode).toBe(410);
+        expect(JSON.parse(result.body).message).toBe('This sharing link has expired');
+        expect(getSignedUrl).not.toHaveBeenCalled();
+    });
+
+    test('rejects active shares without a valid expiration', async () => {
+        getShareById.mockResolvedValue({ shareId: 'share-001', status: 'ACTIVE' });
+
+        const result = await lambdaHandler({ pathParameters: { shareId: 'share-001' } });
+
+        expect(result.statusCode).toBe(500);
+        expect(getSignedUrl).not.toHaveBeenCalled();
     });
 });

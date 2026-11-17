@@ -42,6 +42,15 @@ exports.lambdaHandler = async (event) => {
         return response(403, { message: 'Share is not active', success: false });
     }
 
+    const now = Math.floor(Date.now() / 1000);
+    if (!Number.isInteger(share.expiresAt) || share.expiresAt <= 0) {
+        console.error('Active share is missing a valid expiresAt timestamp');
+        return response(500, { message: 'Share expiration is not configured', success: false });
+    }
+    if (now >= share.expiresAt) {
+        return response(410, { message: 'This sharing link has expired', success: false });
+    }
+
     if (!share.s3Key || !share.fileName) {
         console.error('Share metadata is missing its S3 key or file name');
         return response(500, { message: 'Share metadata is incomplete', success: false });

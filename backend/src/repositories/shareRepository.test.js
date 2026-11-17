@@ -75,7 +75,7 @@ describe('shareRepository', () => {
     test('activates only a pending share', async () => {
         mockSend.mockResolvedValue({ Attributes: { shareId: 'share-001', status: 'ACTIVE' } });
 
-        await expect(activatePendingShare('share-001')).resolves.toEqual({
+        await expect(activatePendingShare('share-001', 1_800_086_400)).resolves.toEqual({
             shareId: 'share-001',
             status: 'ACTIVE',
         });
@@ -85,6 +85,11 @@ describe('shareRepository', () => {
                 TableName: 'ExpiringShareLinks',
                 Key: { shareId: 'share-001' },
                 ConditionExpression: 'attribute_exists(shareId) AND #status = :pendingStatus',
+                ExpressionAttributeValues: {
+                    ':pendingStatus': 'PENDING',
+                    ':activeStatus': 'ACTIVE',
+                    ':expiresAt': 1_800_086_400,
+                },
             }),
         });
     });

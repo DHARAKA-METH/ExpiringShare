@@ -7,6 +7,8 @@ const { createShare } = require('../repositories/shareRepository');
 const s3Client = new S3Client({});
 const URL_EXPIRATION_SECONDS = 300;
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const DEFAULT_EXPIRY_HOURS = 24;
+const ALLOWED_EXPIRY_HOURS = new Set([1, 24, 168]);
 const ALLOWED_CONTENT_TYPES = new Set([
     'image/jpeg',
     'image/png',
@@ -42,6 +44,7 @@ exports.lambdaHandler = async (event) => {
     const fileName = typeof request?.fileName === 'string' ? request.fileName.trim() : '';
     const contentType = typeof request?.contentType === 'string' ? request.contentType.trim() : '';
     const fileSize = request?.fileSize;
+    const expiryHours = request?.expiryHours ?? DEFAULT_EXPIRY_HOURS;
 
     if (!fileName || !contentType) {
         return response(400, {
@@ -53,6 +56,13 @@ exports.lambdaHandler = async (event) => {
     if (!ALLOWED_CONTENT_TYPES.has(contentType)) {
         return response(400, {
             message: 'Unsupported contentType',
+            success: false,
+        });
+    }
+
+    if (!Number.isInteger(expiryHours) || !ALLOWED_EXPIRY_HOURS.has(expiryHours)) {
+        return response(400, {
+            message: 'expiryHours must be one of: 1, 24, or 168',
             success: false,
         });
     }
@@ -84,6 +94,7 @@ exports.lambdaHandler = async (event) => {
         contentType,
         fileSize: fileSize ?? null,
         status: 'PENDING',
+        expiryHours,
         downloadCount: 0,
         maxDownloads: null,
         createdAt: Math.floor(Date.now() / 1000),
@@ -104,6 +115,7 @@ exports.lambdaHandler = async (event) => {
         shareId,
         uploadUrl,
         s3Key: objectKey,
+        expiryHours,
         expiresIn: URL_EXPIRATION_SECONDS,
         success: true,
     });
