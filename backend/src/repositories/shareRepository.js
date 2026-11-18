@@ -4,6 +4,7 @@ const {
     DeleteCommand,
     GetCommand,
     PutCommand,
+    QueryCommand,
     UpdateCommand,
 } = require('@aws-sdk/lib-dynamodb');
 
@@ -102,7 +103,7 @@ const activatePendingShare = async (shareId, expiresAt) => {
         new UpdateCommand({
             TableName: getTableName(),
             Key: { shareId },
-            UpdateExpression: 'SET #status = :activeStatus, expiresAt = :expiresAt',
+            UpdateExpression: 'SET #status = :activeStatus, expiresAt = :expiresAt, cleanupStatus = :cleanupStatus, cleanupAt = :cleanupAt',
             ExpressionAttributeNames: {
                 '#status': 'status',
             },
@@ -110,6 +111,8 @@ const activatePendingShare = async (shareId, expiresAt) => {
                 ':pendingStatus': 'PENDING',
                 ':activeStatus': 'ACTIVE',
                 ':expiresAt': expiresAt,
+                ':cleanupStatus': 'PENDING',
+                ':cleanupAt': expiresAt,
             },
             ConditionExpression: 'attribute_exists(shareId) AND #status = :pendingStatus',
             ReturnValues: 'ALL_NEW',
@@ -117,6 +120,37 @@ const activatePendingShare = async (shareId, expiresAt) => {
     );
 
     return result.Attributes;
+};
+
+const findExpiredShares = async (now) => {
+    if (!Number.isInteger(now) || now <= 0) {
+        throw new Error('A valid current timestamp is required');
+    }
+
+    const shares = [];
+    let exclusiveStartKey;
+
+    do {
+        const result = await documentClient.send(new QueryCommand({
+            TableName: getTableName(),
+            IndexName: process.env.CLEANUP_INDEX_NAME || 'CleanupIndex',
+            KeyConditionExpression: '#cleanupStatus = :pending AND #cleanupAt <= :now',
+            ExpressionAttributeNames: {
+                '#cleanupStatus': 'cleanupStatus',
+                '#cleanupAt': 'cleanupAt',
+            },
+            ExpressionAttributeValues: {
+                ':pending': 'PENDING',
+                ':now': now,
+            },
+            ExclusiveStartKey: exclusiveStartKey,
+        }));
+
+        shares.push(...(result.Items || []));
+        exclusiveStartKey = result.LastEvaluatedKey;
+    } while (exclusiveStartKey);
+
+    return shares;
 };
 
 const authorizeDownload = async (shareId, now, maxDownloads) => {
@@ -184,6 +218,7 @@ module.exports = {
     getShareById,
     updateShare,
     activatePendingShare,
+    findExpiredShares,
     authorizeDownload,
     deleteShare,
 };

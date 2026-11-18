@@ -11,6 +11,7 @@ jest.mock('@aws-sdk/lib-dynamodb', () => ({
     DeleteCommand: jest.fn((input) => ({ input })),
     GetCommand: jest.fn((input) => ({ input })),
     PutCommand: jest.fn((input) => ({ input })),
+    QueryCommand: jest.fn((input) => ({ input })),
     UpdateCommand: jest.fn((input) => ({ input })),
 }));
 
@@ -90,6 +91,8 @@ describe('shareRepository', () => {
                     ':pendingStatus': 'PENDING',
                     ':activeStatus': 'ACTIVE',
                     ':expiresAt': 1_800_086_400,
+                    ':cleanupStatus': 'PENDING',
+                    ':cleanupAt': 1_800_086_400,
                 },
             }),
         });

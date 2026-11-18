@@ -12,6 +12,10 @@ Parameters:
     Type: String
     Default: ExpiringShareLinks
     Description: Existing DynamoDB table used for share metadata
+  CleanupIndexName:
+    Type: String
+    Default: CleanupIndex
+    Description: Existing DynamoDB GSI used to find records ready for cleanup
 
 Globals:
   Function:
@@ -115,6 +119,63 @@ Resources:
           Properties:
             Path: /shares/{shareId}/download
             Method: get
+
+  CleanupExpiredFilesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: src/functions/cleanupExpiredFiles.lambdaHandler
+      Timeout: 60
+      Environment:
+        Variables:
+          UPLOAD_BUCKET: !Ref UploadBucketName
+          TABLE_NAME: !Ref ShareTableName
+          CLEANUP_INDEX_NAME: !Ref CleanupIndexName
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - s3:DeleteObject
+              Resource: !Sub arn:${AWS::Partition}:s3:::${UploadBucketName}/uploads/*
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+                - dynamodb:DeleteItem
+              Resource:
+                - !Sub arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ShareTableName}
+                - !Sub arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ShareTableName}/index/${CleanupIndexName}
+
+  CleanupSchedulerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: scheduler.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: InvokeCleanupLambda
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !GetAtt CleanupExpiredFilesFunction.Arn
+
+  CleanupSchedule:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Description: Run ExpiringShare expired-file cleanup hourly
+      FlexibleTimeWindow:
+        Mode: "OFF"
+      ScheduleExpression: rate(1 hour)
+      State: ENABLED
+      Target:
+        Arn: !GetAtt CleanupExpiredFilesFunction.Arn
+        RoleArn: !GetAtt CleanupSchedulerRole.Arn
 
   UploadsBucket:
     Type: AWS::S3::Bucket
