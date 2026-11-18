@@ -119,6 +119,50 @@ const activatePendingShare = async (shareId, expiresAt) => {
     return result.Attributes;
 };
 
+const authorizeDownload = async (shareId, now, maxDownloads) => {
+    if (!shareId) {
+        throw new Error('shareId is required');
+    }
+    if (!Number.isInteger(now) || now <= 0) {
+        throw new Error('A valid current timestamp is required');
+    }
+    if (maxDownloads !== null && (!Number.isInteger(maxDownloads) || maxDownloads <= 0)) {
+        throw new Error('maxDownloads must be a positive integer or null');
+    }
+
+    const expressionAttributeNames = {
+        '#status': 'status',
+        '#expiresAt': 'expiresAt',
+        '#downloadCount': 'downloadCount',
+    };
+    const expressionAttributeValues = {
+        ':active': 'ACTIVE',
+        ':now': now,
+        ':zero': 0,
+        ':one': 1,
+    };
+    let conditionExpression = '#status = :active AND #expiresAt > :now';
+
+    if (maxDownloads !== null) {
+        expressionAttributeValues[':maxDownloads'] = maxDownloads;
+        conditionExpression += ' AND (attribute_not_exists(#downloadCount) OR #downloadCount < :maxDownloads)';
+    }
+
+    const result = await documentClient.send(
+        new UpdateCommand({
+            TableName: getTableName(),
+            Key: { shareId },
+            UpdateExpression: 'SET #downloadCount = if_not_exists(#downloadCount, :zero) + :one',
+            ConditionExpression: conditionExpression,
+            ExpressionAttributeNames: expressionAttributeNames,
+            ExpressionAttributeValues: expressionAttributeValues,
+            ReturnValues: 'ALL_NEW',
+        }),
+    );
+
+    return result.Attributes;
+};
+
 const deleteShare = async (shareId) => {
     if (!shareId) {
         throw new Error('shareId is required');
@@ -140,5 +184,6 @@ module.exports = {
     getShareById,
     updateShare,
     activatePendingShare,
+    authorizeDownload,
     deleteShare,
 };

@@ -32,6 +32,7 @@ describe('createUploadUrl Lambda', () => {
                 contentType: 'application/pdf',
                 fileSize: 1024,
                 expiryHours: 24,
+                maxDownloads: 3,
             }),
         });
         const body = JSON.parse(result.body);
@@ -42,6 +43,7 @@ describe('createUploadUrl Lambda', () => {
             uploadUrl: 'https://example.com/upload-url',
             s3Key: expect.stringMatching(/^uploads\/[\w-]+\/document\.pdf$/),
             expiryHours: 24,
+            maxDownloads: 3,
             expiresIn: 300,
             success: true,
         });
@@ -59,6 +61,7 @@ describe('createUploadUrl Lambda', () => {
             status: 'PENDING',
             expiryHours: 24,
             downloadCount: 0,
+            maxDownloads: 3,
         }));
         expect(getSignedUrl).toHaveBeenCalledWith(expect.anything(), expect.anything(), { expiresIn: 300 });
     });
@@ -95,5 +98,31 @@ describe('createUploadUrl Lambda', () => {
         expect(result.statusCode).toBe(400);
         expect(JSON.parse(result.body).message).toBe('expiryHours must be one of: 1, 24, or 168');
         expect(createShare).not.toHaveBeenCalled();
+    });
+
+    test('rejects unsupported download limits', async () => {
+        const result = await lambdaHandler({
+            body: JSON.stringify({
+                fileName: 'document.pdf',
+                contentType: 'application/pdf',
+                maxDownloads: 4,
+            }),
+        });
+
+        expect(result.statusCode).toBe(400);
+        expect(JSON.parse(result.body).message).toMatch(/maxDownloads/);
+        expect(createShare).not.toHaveBeenCalled();
+    });
+
+    test('allows null for unlimited downloads', async () => {
+        await lambdaHandler({
+            body: JSON.stringify({
+                fileName: 'document.pdf',
+                contentType: 'application/pdf',
+                maxDownloads: null,
+            }),
+        });
+
+        expect(createShare).toHaveBeenCalledWith(expect.objectContaining({ maxDownloads: null }));
     });
 });

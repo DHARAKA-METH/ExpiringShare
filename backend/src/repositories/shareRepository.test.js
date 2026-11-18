@@ -20,6 +20,7 @@ const {
     getShareById,
     updateShare,
     activatePendingShare,
+    authorizeDownload,
 } = require('./shareRepository');
 
 describe('shareRepository', () => {
@@ -92,5 +93,38 @@ describe('shareRepository', () => {
                 },
             }),
         });
+    });
+
+    test('atomically increments a limited download when active, unexpired, and below limit', async () => {
+        mockSend.mockResolvedValue({ Attributes: { shareId: 'share-001', downloadCount: 3 } });
+
+        await expect(authorizeDownload('share-001', 1_800_000_000, 3)).resolves.toEqual({
+            shareId: 'share-001',
+            downloadCount: 3,
+        });
+
+        expect(mockSend).toHaveBeenCalledWith({
+            input: expect.objectContaining({
+                TableName: 'ExpiringShareLinks',
+                Key: { shareId: 'share-001' },
+                UpdateExpression: 'SET #downloadCount = if_not_exists(#downloadCount, :zero) + :one',
+                ConditionExpression: expect.stringContaining('#downloadCount < :maxDownloads'),
+                ExpressionAttributeValues: expect.objectContaining({
+                    ':active': 'ACTIVE',
+                    ':now': 1_800_000_000,
+                    ':maxDownloads': 3,
+                }),
+            }),
+        });
+    });
+
+    test('atomically increments unlimited downloads without a maximum condition', async () => {
+        mockSend.mockResolvedValue({ Attributes: { shareId: 'share-001', downloadCount: 1 } });
+
+        await authorizeDownload('share-001', 1_800_000_000, null);
+
+        const updateInput = mockSend.mock.calls[0][0].input;
+        expect(updateInput.ConditionExpression).toBe('#status = :active AND #expiresAt > :now');
+        expect(updateInput.ExpressionAttributeValues).not.toHaveProperty(':maxDownloads');
     });
 });

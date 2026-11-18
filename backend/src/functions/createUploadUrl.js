@@ -9,6 +9,7 @@ const URL_EXPIRATION_SECONDS = 300;
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const DEFAULT_EXPIRY_HOURS = 24;
 const ALLOWED_EXPIRY_HOURS = new Set([1, 24, 168]);
+const ALLOWED_MAX_DOWNLOADS = new Set([1, 2, 3, 5]);
 const ALLOWED_CONTENT_TYPES = new Set([
     'image/jpeg',
     'image/png',
@@ -45,6 +46,7 @@ exports.lambdaHandler = async (event) => {
     const contentType = typeof request?.contentType === 'string' ? request.contentType.trim() : '';
     const fileSize = request?.fileSize;
     const expiryHours = request?.expiryHours ?? DEFAULT_EXPIRY_HOURS;
+    const maxDownloads = request?.maxDownloads ?? null;
 
     if (!fileName || !contentType) {
         return response(400, {
@@ -63,6 +65,13 @@ exports.lambdaHandler = async (event) => {
     if (!Number.isInteger(expiryHours) || !ALLOWED_EXPIRY_HOURS.has(expiryHours)) {
         return response(400, {
             message: 'expiryHours must be one of: 1, 24, or 168',
+            success: false,
+        });
+    }
+
+    if (maxDownloads !== null && (!Number.isInteger(maxDownloads) || !ALLOWED_MAX_DOWNLOADS.has(maxDownloads))) {
+        return response(400, {
+            message: 'maxDownloads must be 1, 2, 3, 5, or null for unlimited downloads',
             success: false,
         });
     }
@@ -96,7 +105,7 @@ exports.lambdaHandler = async (event) => {
         status: 'PENDING',
         expiryHours,
         downloadCount: 0,
-        maxDownloads: null,
+        maxDownloads,
         createdAt: Math.floor(Date.now() / 1000),
         expiresAt: null,
     });
@@ -116,6 +125,7 @@ exports.lambdaHandler = async (event) => {
         uploadUrl,
         s3Key: objectKey,
         expiryHours,
+        maxDownloads,
         expiresIn: URL_EXPIRATION_SECONDS,
         success: true,
     });

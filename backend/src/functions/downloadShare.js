@@ -1,6 +1,6 @@
 const { GetObjectCommand, S3Client } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
-const { getShareById } = require('../repositories/shareRepository');
+const { authorizeDownload, getShareById } = require('../repositories/shareRepository');
 
 const s3Client = new S3Client({});
 const DOWNLOAD_URL_EXPIRATION_SECONDS = 60;
@@ -54,6 +54,17 @@ exports.lambdaHandler = async (event) => {
     if (!share.s3Key || !share.fileName) {
         console.error('Share metadata is missing its S3 key or file name');
         return response(500, { message: 'Share metadata is incomplete', success: false });
+    }
+
+    try {
+        await authorizeDownload(shareId, now, share.maxDownloads ?? null);
+    } catch (error) {
+        if (error?.name === 'ConditionalCheckFailedException') {
+            return response(403, { message: 'Download limit reached or share is no longer available', success: false });
+        }
+
+        console.error('Unable to authorize download', error);
+        return response(500, { message: 'Unable to authorize download', success: false });
     }
 
     try {
