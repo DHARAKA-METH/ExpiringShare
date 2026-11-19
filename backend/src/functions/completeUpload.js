@@ -1,5 +1,6 @@
 const { HeadObjectCommand, S3Client } = require('@aws-sdk/client-s3');
 const { activatePendingShare, getShareById } = require('../repositories/shareRepository');
+const { getAuthenticatedUserSub } = require('../utils/auth');
 
 const s3Client = new S3Client({});
 
@@ -14,9 +15,14 @@ const response = (statusCode, body) => ({
 exports.lambdaHandler = async (event) => {
     const shareId = event?.pathParameters?.shareId;
     const bucketName = process.env.UPLOAD_BUCKET;
+    const ownerSub = getAuthenticatedUserSub(event);
 
     if (!shareId) {
         return response(400, { message: 'shareId is required', success: false });
+    }
+
+    if (!ownerSub) {
+        return response(401, { message: 'Authentication is required', success: false });
     }
 
     if (!bucketName) {
@@ -28,6 +34,10 @@ exports.lambdaHandler = async (event) => {
 
     if (!share) {
         return response(404, { message: 'Share not found', success: false });
+    }
+
+    if (share.ownerSub !== ownerSub) {
+        return response(403, { message: 'You do not own this share', success: false });
     }
 
     if (share.status !== 'PENDING') {

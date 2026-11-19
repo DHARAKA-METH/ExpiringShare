@@ -16,8 +16,17 @@ Parameters:
     Type: String
     Default: CleanupIndex
     Description: Existing DynamoDB GSI used to find records ready for cleanup
+  CognitoUserPoolArn:
+    Type: String
+    Description: Cognito User Pool ARN used by the API authorizer
 
 Globals:
+  Api:
+    Auth:
+      DefaultAuthorizer: CognitoAuthorizer
+      Authorizers:
+        CognitoAuthorizer:
+          UserPoolArn: !Ref CognitoUserPoolArn
   Function:
     Runtime: nodejs22.x
     Timeout: 3
@@ -35,6 +44,8 @@ Resources:
           Properties:
             Path: /hello
             Method: get
+            Auth:
+              Authorizer: NONE
 
   CreateUploadUrlFunction:
     Type: AWS::Serverless::Function
@@ -118,7 +129,9 @@ Resources:
           Type: Api
           Properties:
             Path: /shares/{shareId}/download
-            Method: get
+            Method: post
+            Auth:
+              Authorizer: NONE
 
   CleanupExpiredFilesFunction:
     Type: AWS::Serverless::Function

@@ -2,5 +2,12 @@
     "httpMethod": "POST",
     "path": "/uploads",
     "body": "{\"fileName\":\"document.pdf\",\"contentType\":\"application/pdf\",\"fileSize\":1024}",
-    "isBase64Encoded": false
+    "isBase64Encoded": false,
+    "requestContext": {
+        "authorizer": {
+            "claims": {
+                "sub": "local-test-user"
+            }
+        }
+    }
 }

@@ -3,6 +3,7 @@ const { PutObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const { S3Client } = require('@aws-sdk/client-s3');
 const { createShare } = require('../repositories/shareRepository');
+const { getAuthenticatedUserSub } = require('../utils/auth');
 
 const s3Client = new S3Client({});
 const URL_EXPIRATION_SECONDS = 300;
@@ -41,6 +42,11 @@ const parseBody = (event) => {
 };
 
 exports.lambdaHandler = async (event) => {
+    const ownerSub = getAuthenticatedUserSub(event);
+    if (!ownerSub) {
+        return response(401, { message: 'Authentication is required', success: false });
+    }
+
     const request = parseBody(event);
     const fileName = typeof request?.fileName === 'string' ? request.fileName.trim() : '';
     const contentType = typeof request?.contentType === 'string' ? request.contentType.trim() : '';
@@ -98,6 +104,7 @@ exports.lambdaHandler = async (event) => {
 
     await createShare({
         shareId,
+        ownerSub,
         s3Key: objectKey,
         fileName,
         contentType,

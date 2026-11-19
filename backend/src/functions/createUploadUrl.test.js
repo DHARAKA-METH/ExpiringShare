@@ -17,6 +17,11 @@ const { createShare } = require('../repositories/shareRepository');
 const { lambdaHandler } = require('./createUploadUrl');
 
 describe('createUploadUrl Lambda', () => {
+    const authenticatedEvent = (body) => ({
+        body: JSON.stringify(body),
+        requestContext: { authorizer: { claims: { sub: 'user-001' } } },
+    });
+
     beforeEach(() => {
         jest.clearAllMocks();
         process.env.UPLOAD_BUCKET = 'test-upload-bucket';
@@ -26,15 +31,13 @@ describe('createUploadUrl Lambda', () => {
     });
 
     test('returns a presigned URL for a valid request', async () => {
-        const result = await lambdaHandler({
-            body: JSON.stringify({
+        const result = await lambdaHandler(authenticatedEvent({
                 fileName: 'document.pdf',
                 contentType: 'application/pdf',
                 fileSize: 1024,
                 expiryHours: 24,
                 maxDownloads: 3,
-            }),
-        });
+        }));
         const body = JSON.parse(result.body);
 
         expect(result.statusCode).toBe(200);
@@ -54,6 +57,7 @@ describe('createUploadUrl Lambda', () => {
         });
         expect(createShare).toHaveBeenCalledWith(expect.objectContaining({
             shareId: body.shareId,
+            ownerSub: 'user-001',
             s3Key: body.s3Key,
             fileName: 'document.pdf',
             contentType: 'application/pdf',
@@ -67,7 +71,7 @@ describe('createUploadUrl Lambda', () => {
     });
 
     test('rejects a request without required fields', async () => {
-        const result = await lambdaHandler({ body: JSON.stringify({ fileName: 'document.pdf' }) });
+        const result = await lambdaHandler(authenticatedEvent({ fileName: 'document.pdf' }));
 
         expect(result.statusCode).toBe(400);
         expect(JSON.parse(result.body)).toEqual({
@@ -78,22 +82,18 @@ describe('createUploadUrl Lambda', () => {
     });
 
     test('rejects unsupported content types', async () => {
-        const result = await lambdaHandler({
-            body: JSON.stringify({ fileName: 'script.exe', contentType: 'application/octet-stream' }),
-        });
+        const result = await lambdaHandler(authenticatedEvent({ fileName: 'script.exe', contentType: 'application/octet-stream' }));
 
         expect(result.statusCode).toBe(400);
         expect(JSON.parse(result.body).message).toBe('Unsupported contentType');
     });
 
     test('rejects unsupported expiry durations', async () => {
-        const result = await lambdaHandler({
-            body: JSON.stringify({
+        const result = await lambdaHandler(authenticatedEvent({
                 fileName: 'document.pdf',
                 contentType: 'application/pdf',
                 expiryHours: 2,
-            }),
-        });
+        }));
 
         expect(result.statusCode).toBe(400);
         expect(JSON.parse(result.body).message).toBe('expiryHours must be one of: 1, 24, or 168');
@@ -101,13 +101,11 @@ describe('createUploadUrl Lambda', () => {
     });
 
     test('rejects unsupported download limits', async () => {
-        const result = await lambdaHandler({
-            body: JSON.stringify({
+        const result = await lambdaHandler(authenticatedEvent({
                 fileName: 'document.pdf',
                 contentType: 'application/pdf',
                 maxDownloads: 4,
-            }),
-        });
+        }));
 
         expect(result.statusCode).toBe(400);
         expect(JSON.parse(result.body).message).toMatch(/maxDownloads/);
@@ -115,13 +113,11 @@ describe('createUploadUrl Lambda', () => {
     });
 
     test('allows null for unlimited downloads', async () => {
-        await lambdaHandler({
-            body: JSON.stringify({
+        await lambdaHandler(authenticatedEvent({
                 fileName: 'document.pdf',
                 contentType: 'application/pdf',
                 maxDownloads: null,
-            }),
-        });
+        }));
 
         expect(createShare).toHaveBeenCalledWith(expect.objectContaining({ maxDownloads: null }));
     });
