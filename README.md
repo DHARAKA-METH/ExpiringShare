@@ -1,127 +1,180 @@
 # ExpiringShare
 
-This project contains source code and supporting files for a serverless application that you can deploy with the SAM CLI. It includes the following files and folders.
+ExpiringShare is a serverless file-sharing application. Users sign in with Amazon Cognito, upload files directly to Amazon S3 using short-lived presigned URLs, and create share links that automatically expire or stop after a download limit.
 
-- hello-world - Code for the application's Lambda function written in TypeScript.
-- events - Invocation events that you can use to invoke the function.
-- hello-world/tests - Unit tests for the application code. 
-- template.yaml - A template that defines the application's AWS resources.
+The application keeps file metadata in DynamoDB and keeps file contents in S3. Files do not pass through Lambda.
 
-The application uses several AWS resources, including Lambda functions and an API Gateway API. These resources are defined in the `template.yaml` file in this project. You can update the template to add AWS resources through the same deployment process that updates your application code.
+## Features
 
-If you prefer to use an integrated development environment (IDE) to build and test your application, you can use the AWS Toolkit.  
-The AWS Toolkit is an open source plug-in for popular IDEs that uses the SAM CLI to build and deploy serverless applications on AWS. The AWS Toolkit also adds a simplified step-through debugging experience for Lambda function code. See the following links to get started.
+- File upload
+- Secure share URL generation
+- Download count limits
+- Link expiration time
+- Owner file dashboard
+- Automatic expired-file cleanup
 
-* [CLion](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [GoLand](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [IntelliJ](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [WebStorm](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [Rider](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [PhpStorm](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [PyCharm](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [RubyMine](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [DataGrip](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [VS Code](https://docs.aws.amazon.com/toolkit-for-vscode/latest/userguide/welcome.html)
-* [Visual Studio](https://docs.aws.amazon.com/toolkit-for-visual-studio/latest/user-guide/welcome.html)
+## Architecture
+<img width="4099" height="4626" alt="aws architecture expire share" src="https://github.com/user-attachments/assets/59cbcdb0-a28a-4e4f-9808-2d32b19314d2" />
 
-## Deploy the sample application
 
-The Serverless Application Model Command Line Interface (SAM CLI) is an extension of the AWS CLI that adds functionality for building and testing Lambda applications. It uses Docker to run your functions in an Amazon Linux environment that matches Lambda. It can also emulate your application's build environment and API.
+## Technology stack
 
-To use the SAM CLI, you need the following tools.
+### Frontend
 
-* SAM CLI - [Install the SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
-* Node.js - [Install Node.js 24](https://nodejs.org/en/), including the NPM package management tool.
-* Docker - [Install Docker community edition](https://hub.docker.com/search/?type=edition&offering=community)
+- Next.js
+- Tailwind CSS
 
-To build and deploy your application for the first time, run the following in your shell:
+### Backend
+
+- AWS Lambda
+- Node.js 22
+- JavaScript
+- Amazon API Gateway REST API
+- AWS SAM and CloudFormation
+
+### AWS services
+
+- Amazon Cognito User Pool
+- Amazon S3
+- Amazon DynamoDB
+- Amazon EventBridge Scheduler
+- Amazon CloudWatch
+
+## Lambda functions
+
+| Function | Endpoint or trigger | Responsibility |
+|---|---|---|
+| `CreateUploadUrlFunction` | `POST /uploads` | Validates the request, saves a `PENDING` share, and creates a presigned S3 upload URL |
+| `CompleteUploadFunction` | `POST /uploads/{shareId}/complete` | Verifies ownership and the S3 object, then changes the share to `ACTIVE` |
+| `DownloadShareFunction` | `POST /shares/{shareId}/download` | Validates expiration/download limits and creates a presigned S3 download URL |
+| `ListMySharesFunction` | `GET /shares/mine` | Queries the `OwnerIndex` and returns the logged-in user’s shares |
+| `HelloWorldFunction` | `GET /hello` | Public health/test endpoint |
+| `CleanupExpiredFilesFunction` | EventBridge, hourly | Deletes expired S3 objects and DynamoDB metadata |
+
+## Project structure
+
+```text
+ExpiringShare/
+├── backend/
+│   ├── src/functions/
+│   │   ├── createUploadUrl.js
+│   │   ├── completeUpload.js
+│   │   ├── downloadShare.js
+│   │   ├── listMyShares.js
+│   │   ├── cleanupExpiredFiles.js
+│   │   └── helloWorld.js
+│   ├── src/repositories/shareRepository.js
+│   ├── src/utils/auth.js
+│   ├── template.yaml
+│   ├── samconfig.toml
+│   └── s3-cors.json
+├── frontend/
+│   ├── src/app/
+│   │   ├── login/
+│   │   ├── signup/
+│   │   ├── confirm/
+│   │   ├── dashboard/
+│   │   ├── upload/
+│   │   └── s/[shareId]/
+│   ├── src/components/
+│   ├── src/lib/
+│   ├── postcss.config.mjs
+│   └── package.json
+└── README.md
+```
+
+## Prerequisites
+
+- Node.js 22+
+- AWS SAM CLI
+- AWS CLI
+- Docker, for local SAM execution
+- An AWS account with configured credentials
+- A Cognito User Pool and public app client with no client secret
+- An existing S3 upload bucket
+- An existing DynamoDB table named `ExpiringShareLinks`
+
+The DynamoDB table needs these indexes:
+
+```text
+CleanupIndex: cleanupStatus + cleanupAt
+OwnerIndex: ownerSub + createdAt
+```
+
+## Frontend setup
 
 ```bash
+cd frontend
+npm install
+cp .env.example .env.local
+```
+
+Set the values in `frontend/.env.local`:
+
+```env
+NEXT_PUBLIC_API_URL=https://dye7y3ua12.execute-api.ap-south-1.amazonaws.com/Prod
+NEXT_PUBLIC_COGNITO_USER_POOL_ID=ap-south-1_YOUR_POOL_ID
+NEXT_PUBLIC_COGNITO_CLIENT_ID=YOUR_PUBLIC_APP_CLIENT_ID
+```
+
+Start the frontend:
+
+```bash
+npm run dev
+```
+
+Open:
+
+```text
+http://localhost:3000
+```
+
+## S3 CORS setup
+
+The application bucket must allow browser uploads from the frontend origin:
+
+```bash
+aws s3api put-bucket-cors \
+  --bucket YOUR_UPLOAD_BUCKET \
+  --cors-configuration file://backend/s3-cors.json \
+  --region ap-south-1
+```
+
+## Backend build and deployment
+
+```bash
+cd backend
+sam validate --lint
 sam build
-sam deploy --guided
 ```
 
-The first command will build the source of your application. The second command will package and deploy your application to AWS, with a series of prompts:
-
-* **Stack Name**: The name of the stack to deploy to CloudFormation. This should be unique to your account and region, and a good starting point would be something matching your project name.
-* **AWS Region**: The AWS region you want to deploy your app to.
-* **Confirm changes before deploy**: If set to yes, any change sets will be shown to you before execution for manual review. If set to no, the AWS SAM CLI will automatically deploy application changes.
-* **Allow SAM CLI IAM role creation**: Many AWS SAM templates, including this example, create AWS IAM roles required for the AWS Lambda function(s) included to access AWS services. By default, these are scoped down to minimum required permissions. To deploy an AWS CloudFormation stack which creates or modifies IAM roles, the `CAPABILITY_IAM` value for `capabilities` must be provided. If permission isn't provided through this prompt, to deploy this example you must explicitly pass `--capabilities CAPABILITY_IAM` to the `sam deploy` command.
-* **Save arguments to samconfig.toml**: If set to yes, your choices will be saved to a configuration file inside the project, so that in the future you can just re-run `sam deploy` without parameters to deploy changes to your application.
-
-You can find your API Gateway Endpoint URL in the output values displayed after deployment.
-
-## Use the SAM CLI to build and test locally
-
-Build your application with the `sam build` command.
+Deploy with the Cognito User Pool ARN:
 
 ```bash
-ExpiringShare$ sam build
+sam deploy --no-confirm-changeset \
+  --parameter-overrides \
+  CognitoUserPoolArn="arn:aws:cognito-idp:ap-south-1:ACCOUNT_ID:userpool/POOL_ID" \
+  FrontendOrigin="http://localhost:3000" \
+  OwnerIndexName="OwnerIndex"
 ```
 
-The SAM CLI installs dependencies defined in `hello-world/package.json`, compiles TypeScript with esbuild, creates a deployment package, and saves it in the `.aws-sam/build` folder.
+## Testing
 
-Test a single function by invoking it directly with a test event. An event is a JSON document that represents the input that the function receives from the event source. Test events are included in the `events` folder in this project.
-
-Run functions locally and invoke them with the `sam local invoke` command.
+Backend tests:
 
 ```bash
-ExpiringShare$ sam local invoke HelloWorldFunction --event events/event.json
+cd backend
+npm test
 ```
 
-The SAM CLI can also emulate your application's API. Use the `sam local start-api` to run the API locally on port 3000.
+Frontend production build:
 
 ```bash
-ExpiringShare$ sam local start-api
-ExpiringShare$ curl http://localhost:3000/
+cd frontend
+npm run build
 ```
 
-The SAM CLI reads the application template to determine the API's routes and the functions that they invoke. The `Events` property on each function's definition includes the route and method for each path.
 
-```yaml
-      Events:
-        HelloWorld:
-          Type: Api
-          Properties:
-            Path: /hello
-            Method: get
-```
+## License
 
-## Add a resource to your application
-The application template uses AWS Serverless Application Model (AWS SAM) to define application resources. AWS SAM is an extension of AWS CloudFormation with a simpler syntax for configuring common serverless application resources such as functions, triggers, and APIs. For resources not included in [the SAM specification](https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md), you can use standard [AWS CloudFormation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html) resource types.
-
-## Fetch, tail, and filter Lambda function logs
-
-To simplify troubleshooting, SAM CLI has a command called `sam logs`. `sam logs` lets you fetch logs generated by your deployed Lambda function from the command line. In addition to printing the logs on the terminal, this command has several nifty features to help you quickly find the bug.
-
-`NOTE`: This command works for all AWS Lambda functions; not just the ones you deploy using SAM.
-
-```bash
-ExpiringShare$ sam logs -n HelloWorldFunction --stack-name ExpiringShare --tail
-```
-
-You can find more information and examples about filtering Lambda function logs in the [SAM CLI Documentation](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-logging.html).
-
-## Unit tests
-
-Tests are defined in the `hello-world/tests` folder in this project. Use NPM to install the [Jest test framework](https://jestjs.io/) and run unit tests.
-
-```bash
-ExpiringShare$ cd hello-world
-hello-world$ npm install
-hello-world$ npm run test
-```
-
-## Cleanup
-
-To delete the sample application that you created, use the AWS CLI. Assuming you used your project name for the stack name, you can run the following:
-
-```bash
-sam delete --stack-name ExpiringShare
-```
-
-## Resources
-
-See the [AWS SAM developer guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html) for an introduction to SAM specification, the SAM CLI, and serverless application concepts.
-
-Next, you can use AWS Serverless Application Repository to deploy ready to use Apps that go beyond hello world samples and learn how authors developed their applications: [AWS Serverless Application Repository main page](https://aws.amazon.com/serverless/serverlessrepo/)
+This project is for educational and development use. Add a project license before distributing it publicly.
