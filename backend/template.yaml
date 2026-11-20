@@ -20,6 +20,10 @@ Parameters:
     Type: String
     Default: CleanupIndex
     Description: Existing DynamoDB GSI used to find records ready for cleanup
+  OwnerIndexName:
+    Type: String
+    Default: OwnerIndex
+    Description: Existing DynamoDB GSI used to list shares owned by a user
   CognitoUserPoolArn:
     Type: String
     Description: Cognito User Pool ARN used by the API authorizer
@@ -144,6 +148,31 @@ Resources:
             Method: post
             Auth:
               Authorizer: NONE
+
+  ListMySharesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: src/functions/listMyShares.lambdaHandler
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref ShareTableName
+          OWNER_INDEX_NAME: !Ref OwnerIndexName
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+              Resource:
+                - !Sub arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ShareTableName}
+                - !Sub arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ShareTableName}/index/${OwnerIndexName}
+      Events:
+        ListMySharesApi:
+          Type: Api
+          Properties:
+            Path: /shares/mine
+            Method: get
 
   CleanupExpiredFilesFunction:
     Type: AWS::Serverless::Function

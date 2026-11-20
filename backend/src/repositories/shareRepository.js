@@ -153,6 +153,36 @@ const findExpiredShares = async (now) => {
     return shares;
 };
 
+const listSharesByOwner = async (ownerSub) => {
+    if (!ownerSub) {
+        throw new Error('ownerSub is required');
+    }
+
+    const shares = [];
+    let exclusiveStartKey;
+
+    do {
+        const result = await documentClient.send(new QueryCommand({
+            TableName: getTableName(),
+            IndexName: process.env.OWNER_INDEX_NAME || 'OwnerIndex',
+            KeyConditionExpression: '#ownerSub = :ownerSub',
+            ExpressionAttributeNames: {
+                '#ownerSub': 'ownerSub',
+            },
+            ExpressionAttributeValues: {
+                ':ownerSub': ownerSub,
+            },
+            ScanIndexForward: false,
+            ExclusiveStartKey: exclusiveStartKey,
+        }));
+
+        shares.push(...(result.Items || []));
+        exclusiveStartKey = result.LastEvaluatedKey;
+    } while (exclusiveStartKey);
+
+    return shares;
+};
+
 const authorizeDownload = async (shareId, now, maxDownloads) => {
     if (!shareId) {
         throw new Error('shareId is required');
@@ -219,6 +249,7 @@ module.exports = {
     updateShare,
     activatePendingShare,
     findExpiredShares,
+    listSharesByOwner,
     authorizeDownload,
     deleteShare,
 };

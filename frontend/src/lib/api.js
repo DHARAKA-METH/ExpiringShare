@@ -35,9 +35,17 @@ export async function createUpload(file, options) {
       maxDownloads: options.maxDownloads,
     }),
   });
-    console.log("response response ------------------:", response);
-
   return readResponse(response, "Could not prepare the upload.");
+}
+
+export async function listMyShares() {
+  const token = await getIdToken();
+  const response = await fetch(`${API_URL}/shares/mine`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  return readResponse(response, "Could not load your shares.");
 }
 
 export async function uploadToS3(uploadUrl, file) {

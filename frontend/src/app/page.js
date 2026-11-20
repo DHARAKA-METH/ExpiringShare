@@ -20,7 +20,7 @@ export default function HomePage() {
         <p>Upload a file, set its expiration, and share one secure link.</p>
         {user ? (
           <>
-            <Link href="/upload">Upload a file</Link>
+            <Link href="/dashboard">My shares</Link>
             <button className="secondary" onClick={() => logoutUser()}>
               Sign out
             </button>
