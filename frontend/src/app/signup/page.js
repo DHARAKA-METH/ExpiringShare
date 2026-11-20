@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { registerUser } from "../../lib/auth";
+import Spinner from "../../components/Spinner";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -34,7 +35,7 @@ export default function SignupPage() {
       <label>Email<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>
       <label>Password<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required /></label>
       {error && <p className="error">{error}</p>}
-      <button disabled={loading}>{loading ? "Creating..." : "Create account"}</button>
+      <button className="rounded-xl bg-indigo-600 px-5 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-60" disabled={loading}>{loading ? <Spinner label="Creating account..." /> : "Create account"}</button>
       <Link href="/login">Already have an account?</Link>
     </form></main>
   );

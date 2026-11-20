@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { getSignedInUser } from "../../lib/auth";
 import { completeUpload, createUpload, uploadToS3 } from "../../lib/api";
 import { getShareUrl } from "../../lib/shareUrl";
+import Spinner from "../../components/Spinner";
+import CopyButton from "../../components/CopyButton";
 
 export default function UploadPage() {
   const router = useRouter();
@@ -45,10 +47,6 @@ export default function UploadPage() {
     }
   }
 
-  async function copyLink() {
-    await navigator.clipboard.writeText(shareUrl);
-  }
-
   return (
     <main className="mx-auto min-h-screen max-w-4xl px-6 py-10">
       <div className="mb-8"><Link className="text-sm font-bold text-indigo-600" href="/dashboard">← Back to dashboard</Link><p className="mb-2 mt-6 text-sm font-bold uppercase tracking-widest text-indigo-600">New share</p><h1 className="text-4xl font-black tracking-tight text-slate-950">Upload a file</h1><p className="mt-2 text-slate-500">Create a link with exactly the access rules you need.</p></div>
@@ -64,8 +62,8 @@ export default function UploadPage() {
           <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="5">5</option><option value="null">Unlimited</option>
         </select></label>
         {error && <p className="error">{error}</p>}
-        <button className="rounded-xl bg-indigo-600 px-5 py-3 font-bold text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50" disabled={["creating", "uploading", "completing"].includes(status)}>
-          {status === "creating" ? "Preparing..." : status === "uploading" ? "Uploading..." : status === "completing" ? "Finalizing..." : "Create share link"}
+        <button className="rounded-xl bg-indigo-600 px-5 py-3 font-bold text-white shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50" disabled={["creating", "uploading", "completing"].includes(status)}>
+          {status === "creating" ? <Spinner label="Preparing..." /> : status === "uploading" ? <Spinner label="Uploading..." /> : status === "completing" ? <Spinner label="Finalizing..." /> : "Create share link"}
        </button>
       </form>
       </div>
@@ -73,7 +71,7 @@ export default function UploadPage() {
       </div>
       {shareUrl && <div className="card mt-6 border-emerald-200 bg-emerald-50 p-6">
         <p className="font-black text-emerald-800">✓ Your file is ready to share</p>
-        <div className="mt-4 flex gap-2"><input className="min-w-0 flex-1 rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" value={shareUrl} readOnly /><button className="rounded-xl bg-emerald-600 px-4 py-2 font-bold text-white hover:bg-emerald-700" type="button" onClick={copyLink}>Copy</button></div>
+        <div className="mt-4 flex gap-2"><input className="min-w-0 flex-1 rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" value={shareUrl} readOnly /><CopyButton value={shareUrl} /></div>
         <Link className="mt-4 inline-block font-bold text-emerald-800" href={shareUrl}>Open share page →</Link>
       </div>}
     </main>

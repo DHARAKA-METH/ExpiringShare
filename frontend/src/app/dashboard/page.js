@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { getSignedInUser, logoutUser } from "../../lib/auth";
 import { listMyShares } from "../../lib/api";
 import { getShareUrl } from "../../lib/shareUrl";
+import Spinner from "../../components/Spinner";
+import CopyButton from "../../components/CopyButton";
 
 function formatDate(timestamp) {
   if (!timestamp) return "Not activated";
@@ -39,10 +41,6 @@ export default function DashboardPage() {
     load();
   }, [router]);
 
-  async function copyShare(shareUrl) {
-    await navigator.clipboard.writeText(getShareUrl(shareUrl));
-  }
-
   return (
     <main className="mx-auto min-h-screen max-w-6xl px-6 py-10">
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
@@ -51,7 +49,7 @@ export default function DashboardPage() {
       </div>
       <div className="card stack p-5 sm:p-7">
 
-        {loading && <p>Loading your uploaded files...</p>}
+        {loading && <div className="space-y-3" aria-label="Loading your uploaded files"><div className="h-20 animate-pulse rounded-2xl bg-slate-100" /><div className="h-20 animate-pulse rounded-2xl bg-slate-100" /></div>}
         {error && <p className="error">{error}</p>}
         {!loading && !error && shares.length === 0 && (
           <p>You have not uploaded any files yet.</p>
@@ -71,9 +69,7 @@ export default function DashboardPage() {
                 <>
                   <div className="mt-4 flex gap-2">
                     <input className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600" value={url} readOnly />
-                    <button className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-700" type="button" onClick={() => copyShare(share.shareUrl)}>
-                      Copy
-                    </button>
+                    <CopyButton value={url} />
                   </div>
                   <Link className="mt-3 inline-block text-sm font-bold text-indigo-600 hover:text-indigo-800" href={url}>Open share page →</Link>
                 </>

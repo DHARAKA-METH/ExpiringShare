@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { loginUser } from "../../lib/auth";
+import Spinner from "../../components/Spinner";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -33,7 +34,7 @@ export default function LoginPage() {
       <div className="space-y-4"><label className="block text-sm font-bold text-slate-700">Email<input className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>
       <label className="block text-sm font-bold text-slate-700">Password<input className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required /></label></div>
       {error && <p className="error rounded-xl bg-red-50 p-3 text-sm">{error}</p>}
-      <button className="w-full rounded-xl bg-indigo-600 px-5 py-3 font-bold text-white hover:bg-indigo-700" disabled={loading}>{loading ? "Signing in..." : "Sign in"}</button>
+      <button className="w-full rounded-xl bg-indigo-600 px-5 py-3 font-bold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60" disabled={loading}>{loading ? <Spinner label="Signing in..." /> : "Sign in"}</button>
       <p className="text-center text-sm text-slate-500">New to ExpiringShare? <Link className="font-bold text-indigo-600" href="/signup">Create an account</Link></p>
     </form></main>
   );

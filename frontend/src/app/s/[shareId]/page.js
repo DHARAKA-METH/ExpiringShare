@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { requestDownload } from "../../../lib/api";
+import Spinner from "../../../components/Spinner";
 
 export default function SharePage() {
   const { shareId } = useParams();
@@ -27,6 +28,6 @@ export default function SharePage() {
     <p className="text-sm font-bold uppercase tracking-widest text-indigo-600">ExpiringShare</p><h1 className="mt-3 text-3xl font-black text-slate-950">A file was shared with you</h1>
     <p className="mt-3 text-slate-500">This link is temporary and protected by expiration and download limits.</p>
     {error && <p className="error mt-6 rounded-xl bg-red-50 p-3 text-sm">{error}</p>}
-    <button className="mt-8 w-full rounded-xl bg-indigo-600 px-5 py-3 font-bold text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-700" onClick={download} disabled={loading}>{loading ? "Preparing download..." : "Download file"}</button>
+    <button className="mt-8 w-full rounded-xl bg-indigo-600 px-5 py-3 font-bold text-white shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60" onClick={download} disabled={loading}>{loading ? <Spinner label="Preparing download..." /> : "Download file"}</button>
   </div></main>;
 }
