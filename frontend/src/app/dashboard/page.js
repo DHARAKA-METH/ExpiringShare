@@ -44,12 +44,12 @@ export default function DashboardPage() {
   }
 
   return (
-    <main>
-      <div className="card stack">
-        <div className="linkbox">
-          <h1 style={{ marginRight: "auto" }}>My shares</h1>
-          <Link href="/upload">Upload file</Link>
-        </div>
+    <main className="mx-auto min-h-screen max-w-6xl px-6 py-10">
+      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+        <div><p className="mb-2 text-sm font-bold uppercase tracking-widest text-indigo-600">Workspace</p><h1 className="text-4xl font-black tracking-tight text-slate-950">My shares</h1><p className="mt-2 text-slate-500">Manage every file and link from one place.</p></div>
+        <Link className="rounded-xl bg-indigo-600 px-5 py-3 font-bold text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-700" href="/upload">+ Upload file</Link>
+      </div>
+      <div className="card stack p-5 sm:p-7">
 
         {loading && <p>Loading your uploaded files...</p>}
         {error && <p className="error">{error}</p>}
@@ -62,22 +62,20 @@ export default function DashboardPage() {
           const limited = share.maxDownloads !== null;
 
           return (
-            <article className="card stack" key={share.shareId}>
-              <strong>{share.fileName}</strong>
-              <span>Status: {share.status}</span>
-              <span>Expires: {formatDate(share.expiresAt)}</span>
-              <span>
+            <article className="rounded-2xl border border-slate-200 p-5 transition hover:border-indigo-200 hover:shadow-md" key={share.shareId}>
+              <div className="flex flex-wrap items-start justify-between gap-4"><div><strong className="block text-lg text-slate-900">{share.fileName}</strong><span className="mt-1 block text-sm text-slate-500">Expires {formatDate(share.expiresAt)}</span></div><span className={`rounded-full px-3 py-1 text-xs font-bold ${share.status === "ACTIVE" ? "bg-emerald-50 text-emerald-700" : share.status === "EXPIRED" ? "bg-slate-100 text-slate-500" : "bg-amber-50 text-amber-700"}`}>{share.status}</span></div>
+              <div className="mt-5 text-sm text-slate-600">
                 Downloads: {share.downloadCount} / {limited ? share.maxDownloads : "Unlimited"}
-              </span>
+              </div>
               {share.status === "ACTIVE" && (
                 <>
-                  <div className="linkbox">
-                    <input value={url} readOnly />
-                    <button type="button" onClick={() => copyShare(share.shareUrl)}>
+                  <div className="mt-4 flex gap-2">
+                    <input className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600" value={url} readOnly />
+                    <button className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-700" type="button" onClick={() => copyShare(share.shareUrl)}>
                       Copy
                     </button>
                   </div>
-                  <Link href={url}>Open share page</Link>
+                  <Link className="mt-3 inline-block text-sm font-bold text-indigo-600 hover:text-indigo-800" href={url}>Open share page →</Link>
                 </>
               )}
             </article>

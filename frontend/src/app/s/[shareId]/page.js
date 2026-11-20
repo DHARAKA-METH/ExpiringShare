@@ -22,10 +22,11 @@ export default function SharePage() {
     }
   }
 
-  return <main><div className="card stack">
-    <h1>ExpiringShare file</h1>
-    <p>This file is available through a temporary download link.</p>
-    {error && <p className="error">{error}</p>}
-    <button onClick={download} disabled={loading}>{loading ? "Preparing download..." : "Download file"}</button>
+  return <main className="flex min-h-screen items-center justify-center px-6 py-12"><div className="card w-full max-w-lg p-8 text-center sm:p-10">
+    <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-3xl bg-indigo-100 text-3xl text-indigo-600">↓</div>
+    <p className="text-sm font-bold uppercase tracking-widest text-indigo-600">ExpiringShare</p><h1 className="mt-3 text-3xl font-black text-slate-950">A file was shared with you</h1>
+    <p className="mt-3 text-slate-500">This link is temporary and protected by expiration and download limits.</p>
+    {error && <p className="error mt-6 rounded-xl bg-red-50 p-3 text-sm">{error}</p>}
+    <button className="mt-8 w-full rounded-xl bg-indigo-600 px-5 py-3 font-bold text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-700" onClick={download} disabled={loading}>{loading ? "Preparing download..." : "Download file"}</button>
   </div></main>;
 }

@@ -1,15 +1,57 @@
-* { box-sizing: border-box; }
-body { margin: 0; background: #f5f7fb; color: #172033; font-family: Arial, sans-serif; }
-main { max-width: 760px; margin: 0 auto; padding: 48px 20px; }
-.card { background: white; border: 1px solid #dfe4ee; border-radius: 14px; padding: 24px; box-shadow: 0 8px 24px #18223d0d; }
-.stack { display: grid; gap: 16px; }
-label { display: grid; gap: 7px; font-weight: 600; }
-input, select, button { border: 1px solid #cbd3e1; border-radius: 8px; padding: 11px 12px; font: inherit; }
-button { background: #2457d6; color: white; border: 0; cursor: pointer; font-weight: 700; }
-button:disabled { cursor: not-allowed; opacity: .6; }
-.secondary { background: #e9eefb; color: #2147a7; }
+@import "tailwindcss";
+
+:root {
+  --background: #f7f8fc;
+  --foreground: #172033;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid #a5b4fc;
+  outline-offset: 2px;
+}
+
+.card {
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: 0 12px 32px rgb(15 23 42 / 6%);
+}
+
+.stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.linkbox {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+.linkbox input {
+  min-width: 0;
+  flex: 1;
+}
+
 .error { color: #b42318; }
 .success { color: #087443; }
-.linkbox { display: flex; gap: 8px; align-items: center; }
-.linkbox input { flex: 1; }
-a { color: #2457d6; }
