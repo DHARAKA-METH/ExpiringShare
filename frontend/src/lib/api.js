@@ -35,6 +35,7 @@ export async function createUpload(file, options) {
       maxDownloads: options.maxDownloads,
     }),
   });
+    console.log("response response ------------------:", response);
 
   return readResponse(response, "Could not prepare the upload.");
 }

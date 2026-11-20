@@ -26,9 +26,13 @@ Parameters:
 
 Globals:
   Api:
-    Cors: !Sub "'${FrontendOrigin}'"
+    Cors:
+      AllowMethods: "'GET,POST,PUT,OPTIONS'"
+      AllowHeaders: "'Content-Type,Authorization'"
+      AllowOrigin: !Sub "'${FrontendOrigin}'"
     Auth:
       DefaultAuthorizer: CognitoAuthorizer
+      AddDefaultAuthorizerToCorsPreflight: false
       Authorizers:
         CognitoAuthorizer:
           UserPoolArn: !Ref CognitoUserPoolArn
@@ -36,6 +40,9 @@ Globals:
     Runtime: nodejs22.x
     Timeout: 3
     MemorySize: 128
+    Environment:
+      Variables:
+        FRONTEND_ORIGIN: !Ref FrontendOrigin
 
 Resources:
   HelloWorldFunction:

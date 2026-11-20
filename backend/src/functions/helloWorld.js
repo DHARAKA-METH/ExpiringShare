@@ -4,7 +4,8 @@ exports.lambdaHandler = async (event) => {
     return {
         statusCode: 200,
         headers: {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": process.env.FRONTEND_ORIGIN || "*"
         },
         body: JSON.stringify({
             message: `Hello ${name}!`,

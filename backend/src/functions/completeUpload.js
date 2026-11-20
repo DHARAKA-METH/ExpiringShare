@@ -8,6 +8,7 @@ const response = (statusCode, body) => ({
     statusCode,
     headers: {
         'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': process.env.FRONTEND_ORIGIN || '*',
     },
     body: JSON.stringify(body),
 });
