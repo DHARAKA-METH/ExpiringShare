@@ -171,6 +171,29 @@ Frontend production build:
 cd frontend
 npm run build
 ```
+## Screenshots
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="https://github.com/user-attachments/assets/e93eb16b-0e45-436e-9554-f6c4f58f744f" width="100%" />
+    </td>
+    <td width="50%">
+      <img src="https://github.com/user-attachments/assets/fca647ae-fb58-4859-9f47-a48dddf19612" width="100%" />
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="https://github.com/user-attachments/assets/7db81fc8-23ca-469e-86d0-bb16ab15c274" width="100%" />
+    </td>
+    <td width="50%">
+      <img src="https://github.com/user-attachments/assets/c9fe47c3-6cdc-4339-8904-e10063e6e69a" width="100%" />
+    </td>
+  </tr>
+</table>
+
+
+
 
 
 ## License
