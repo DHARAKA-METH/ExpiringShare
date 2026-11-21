@@ -1,8 +1,6 @@
 # ExpiringShare
 
-ExpiringShare is a serverless file-sharing application. Users sign in with Amazon Cognito, upload files directly to Amazon S3 using short-lived presigned URLs, and create share links that automatically expire or stop after a download limit.
-
-The application keeps file metadata in DynamoDB and keeps file contents in S3. Files do not pass through Lambda.
+ExpiringShare is a secure, serverless file-sharing application that allows authenticated users to upload files and generate temporary shareable links. Users can configure link expiration times and maximum download counts. Files are uploaded directly to Amazon S3 using presigned URLs, while Amazon DynamoDB stores share metadata, ownership, expiration details, and download counts. Recipients can download files without creating an account, and expired files are automatically removed through scheduled AWS Lambda cleanup.
 
 ## Features
 
